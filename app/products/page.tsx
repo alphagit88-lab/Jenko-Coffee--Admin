@@ -1,18 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Space_Grotesk } from 'next/font/google';
 import Image from 'next/image';
 import LandingNavbar from '@/components/LandingNavbar';
 import LandingFooter from '@/components/LandingFooter';
-import { Coffee, Award, Zap, Check } from 'lucide-react';
-
-// Images
-import image1 from '@/src/sld1.jpeg';
-import image2 from '@/src/sld2.jpeg';
-import image3 from '@/src/sld3.jpeg';
-import image4 from '@/src/sld1.jpeg';
-import sld1 from '@/src/sld1.jpeg';
-import sld2 from '@/src/sld2.jpeg';
+import { Coffee, Award, Zap, Check, ChevronRight } from 'lucide-react';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -20,34 +13,49 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
 });
 
-const productLineup = [
+const productCategories = [
   {
-    title: 'Colombian',
-    description: 'A classic, medium-bodied brew with a smooth finish. Perfect for all-day sipping.',
-    image: sld1,
-    tags: ['Classic', 'Medium-Body', 'Smooth'],
+    id: 'ground-coffee',
+    name: 'Ground Coffee',
+    folder: 'ground-coffee',
+    products: [
+      { title: 'Cafe House Blend', image: 'coldfire-cafe-house-blend.webp' },
+      { title: '100% Colombian', image: 'coldfire-100-colombian.webp' },
+      { title: 'Euro Dark', image: 'coldfire-euro-dark.webp' },
+      { title: 'Decaf', image: 'coldfire-decaf.webp' },
+      { title: 'Kona Blend', image: 'coldfire-kona-blend.webp' },
+    ]
   },
   {
-    title: 'Texas Pecan',
-    description: 'A local favorite with rich, nutty undertones. Captures the spirit of the South.',
-    image: image2,
-    tags: ['Local Favorite', 'Nutty', 'Aromatic'],
+    id: 'flavored-ground',
+    name: 'Flavored Ground Coffee',
+    folder: 'flavored-ground-coffee',
+    products: [
+      { title: 'Texas Pecan', image: 'coldfire-texas-pecan.webp' },
+      { title: 'Cinnamon', image: 'coldfire-cinnamon.webp' },
+      { title: 'French Vanilla', image: 'coldfire-french-vanilla.webp' },
+    ]
   },
   {
-    title: 'Dark Roast',
-    description: 'Deep, bold, and intense for those who need a serious wake-up call.',
-    image: sld2,
-    tags: ['Bold', 'Intense', 'Dark'],
-  },
-  {
-    title: 'Artisan Cappuccinos',
-    description: 'Creamy, frothy, and available in a variety of seasonal and staple flavors.',
-    image: image3,
-    tags: ['Creamy', 'Versatile', 'Staff Pick'],
-  },
+    id: 'whole-bean',
+    name: 'Whole Bean',
+    folder: 'whole-bean',
+    products: [
+      { title: 'Cafe House Blend', image: 'coldfire-cafe-house-blend.webp' },
+      { title: '100% Colombian', image: 'coldfire-100-colombian.webp' },
+      { title: 'Euro Dark', image: 'coldfire-euro-dark.webp' },
+      { title: 'Texas Pecan', image: 'coldfire-texas-pecan.webp' },
+      { title: 'Cinnamon', image: 'coldfire-cinnamon.webp' },
+      { title: 'Decaf', image: 'coldfire-decaf.webp' },
+      { title: 'Costa Rican', image: 'coldfire-costa-rican.webp' },
+      { title: 'French Vanilla', image: 'french-vanilla.webp' },
+    ]
+  }
 ];
 
 export default function ProductsPage() {
+  const [activeCategory, setActiveCategory] = useState(productCategories[0]);
+
   return (
     <div className={`min-h-screen bg-[#f5efe7] text-[#112033] ${spaceGrotesk.variable} font-sans`}>
       <LandingNavbar />
@@ -55,43 +63,61 @@ export default function ProductsPage() {
       <main className="pt-32">
         <section className="px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#c86c49]">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c86c49]">
               Our Selection
             </p>
-            <h1 className="mt-6 font-[family:var(--font-space-grotesk)] text-5xl font-bold tracking-[-0.06em] text-[#0d1b2b] sm:text-7xl">
-              Premium Roasts & Flavors
+            <h1 className="mt-4 font-[family:var(--font-space-grotesk)] text-4xl font-black tracking-tight text-[#0d1b2b] sm:text-6xl">
+              Premium Roasts
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[#5b6778]">
-              We believe that convenience should never compromise quality. Discover the blends that drive your morning foot traffic.
-            </p>
           </div>
 
-          <div className="mx-auto mt-20 grid max-w-7xl gap-8 sm:gap-12 md:grid-cols-2 lg:grid-cols-3">
-            {productLineup.map((product, index) => (
-              <div key={product.title} className="group overflow-hidden rounded-[2.5rem] bg-white shadow-xl transition-all hover:-translate-y-2">
-                <div className="relative aspect-[16/10] overflow-hidden">
+          {/* Category Tabs */}
+          <div className="mx-auto mt-8 max-w-7xl">
+            <div className="flex flex-wrap justify-center gap-2 border-b border-gray-100 pb-4">
+              {productCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategory(category)}
+                  className={`group relative px-6 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                    activeCategory.id === category.id
+                      ? 'text-[#c86c49]'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  {category.name}
+                  {activeCategory.id === category.id && (
+                    <div className="absolute bottom-0 left-0 h-0.5 w-full bg-[#c86c49] animate-in slide-in-from-left-full duration-500" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mx-auto mt-8 grid max-w-7xl gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {activeCategory.products.map((product, index) => (
+              <div key={`${activeCategory.id}-${product.title}`} className="group overflow-hidden rounded-3xl bg-white shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
+                <div className="relative aspect-[4/3] overflow-hidden bg-white">
                   <Image
-                    src={product.image}
+                    src={`/products/${activeCategory.folder}/${product.image}`}
                     alt={product.title}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-6 left-6 flex gap-2">
-                    {product.tags.map(tag => (
-                      <span key={tag} className="rounded-full bg-white/20 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-white backdrop-blur-md">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="font-[family:var(--font-space-grotesk)] text-xl font-bold text-[#0d1b2b]">
+                <div className="p-5 flex flex-col flex-1 border-t border-gray-50">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Coffee className="w-3.5 h-3.5 text-[#c86c49]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      {activeCategory.name}
+                    </span>
+                  </div>
+                  <h3 className="font-[family:var(--font-space-grotesk)] text-lg font-bold text-[#0d1b2b]">
                     {product.title}
                   </h3>
-                  <p className="mt-2 text-sm text-[#5b6778] leading-relaxed">
-                    {product.description}
-                  </p>
+                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-50/50">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#c86c49]">Premium Selection</span>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#c86c49] group-hover:translate-x-1 transition-all" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -128,11 +154,12 @@ export default function ProductsPage() {
               </div>
               <div className="relative aspect-video overflow-hidden rounded-[2rem] border border-white/10">
                 <Image
-                  src={image4}
+                  src="/products/ground-coffee/coldfire-euro-dark.webp"
                   alt="Quality assurance"
                   fill
-                  className="object-cover"
+                  className="object-cover opacity-60 grayscale hover:grayscale-0 transition-all duration-700"
                 />
+                <div className="absolute inset-0 bg-[#c86c49]/10" />
               </div>
             </div>
           </div>
