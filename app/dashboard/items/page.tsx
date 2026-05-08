@@ -7,6 +7,7 @@ import ConfirmModal from '@/components/ConfirmModal';
 export default function ItemsPage() {
   const [items, setItems] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [customerGroups, setCustomerGroups] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     description_name: '', price: '', description: '',
@@ -23,25 +24,28 @@ export default function ItemsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [itemCustomerPrices, setItemCustomerPrices] = useState<any[]>([]);
-  const [newCustPrice, setNewCustPrice] = useState({ customer_id: '', price: '' });
+  const [itemGroupPrices, setItemGroupPrices] = useState<any[]>([]);
+  const [newGroupPrice, setNewGroupPrice] = useState({ group_id: '', price: '' });
 
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const [itemsRes, catRes, custRes] = await Promise.all([
+      const [itemsRes, catRes, custRes, groupRes] = await Promise.all([
         fetch(`${API_URL}/items`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_URL}/categories`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/customers`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/customers`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/customer-groups`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       const itemsData = await itemsRes.json();
       const catData = await catRes.json();
       const custData = await custRes.json();
+      const groupData = await groupRes.json();
       if (itemsData.success) setItems(itemsData.data);
       if (catData.success) setCategories(catData.data);
       if (custData.success) setCustomers(custData.data);
+      if (groupData.success) setCustomerGroups(groupData.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -53,56 +57,56 @@ export default function ItemsPage() {
     fetchData();
   }, []);
 
-  const fetchItemCustomerPrices = async (itemId: number) => {
+  const fetchItemGroupPrices = async (itemId: number) => {
     try {
-      const res = await fetch(`${API_URL}/items/${itemId}/customer-prices`, {
+      const res = await fetch(`${API_URL}/items/${itemId}/group-prices`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
-      if (data.success) setItemCustomerPrices(data.data);
+      if (data.success) setItemGroupPrices(data.data);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleAddCustomerPrice = async () => {
-    if (!newCustPrice.customer_id || !newCustPrice.price || !editId) return;
+  const handleAddGroupPrice = async () => {
+    if (!newGroupPrice.group_id || !newGroupPrice.price || !editId) return;
     try {
-      const res = await fetch(`${API_URL}/items/${editId}/customer-prices`, {
+      const res = await fetch(`${API_URL}/items/${editId}/group-prices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(newCustPrice)
+        body: JSON.stringify(newGroupPrice)
       });
       const data = await res.json();
       if (data.success) {
-        fetchItemCustomerPrices(editId);
-        setNewCustPrice({ customer_id: '', price: '' });
+        fetchItemGroupPrices(editId);
+        setNewGroupPrice({ group_id: '', price: '' });
       }
     } catch (err) {
-      alert("Error adding customer price");
+      alert("Error adding group price");
     }
   };
 
-  const handleRemoveCustomerPrice = async (customerId: number) => {
+  const handleRemoveGroupPrice = async (groupId: number) => {
     if (!editId) return;
     try {
-      const res = await fetch(`${API_URL}/items/${editId}/customer-prices`, {
-        method: 'POST', // Backend uses POST with price: null/undefined to delete
+      const res = await fetch(`${API_URL}/items/${editId}/group-prices`, {
+        method: 'POST', 
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ customer_id: customerId, price: null })
+        body: JSON.stringify({ group_id: groupId, price: null })
       });
       const data = await res.json();
       if (data.success) {
-        fetchItemCustomerPrices(editId);
+        fetchItemGroupPrices(editId);
       }
     } catch (err) {
-      alert("Error removing customer price");
+      alert("Error removing group price");
     }
   };
 
@@ -167,7 +171,7 @@ export default function ItemsPage() {
     setEditId(item.id);
     setIsEdit(true);
     setShowModal(true);
-    fetchItemCustomerPrices(item.id);
+    fetchItemGroupPrices(item.id);
   };
 
   const handleDelete = (id: number) => {
@@ -240,7 +244,7 @@ export default function ItemsPage() {
               item_number: '', upc: '', cost: '', quantity_size: '', vendor_cost: '',
               category_id: ''
             });
-            setItemCustomerPrices([]);
+            setItemGroupPrices([]);
             setShowModal(true);
           }}
           className="bg-orange-500 shadow-sm shadow-orange-200 text-white flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm hover:bg-orange-600 transition-all font-medium"
@@ -479,22 +483,22 @@ export default function ItemsPage() {
                 {isEdit && (
                   <div className="pt-8 border-t border-gray-100">
                     <div className="flex items-center gap-2 mb-6">
-                      <Users className="w-4 h-4 text-orange-600" />
-                      <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Customer Specific Prices</h3>
+                      <Layers className="w-4 h-4 text-orange-600" />
+                      <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Group Specific Prices</h3>
                     </div>
                     
                     <div className="bg-slate-50 rounded-2xl p-6 border border-gray-100">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div className="md:col-span-1">
-                          <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Select Customer</label>
+                          <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Select Customer Group</label>
                           <select 
                             className="w-full px-4 py-2 bg-white border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/10 rounded-lg transition text-sm font-medium outline-none appearance-none cursor-pointer"
-                            value={newCustPrice.customer_id}
-                            onChange={e => setNewCustPrice({ ...newCustPrice, customer_id: e.target.value })}
+                            value={newGroupPrice.group_id}
+                            onChange={e => setNewGroupPrice({ ...newGroupPrice, group_id: e.target.value })}
                           >
-                            <option value="">-- Choose Customer --</option>
-                            {customers.map(c => (
-                              <option key={c.id} value={c.id}>{c.dba || c.registered_company_name}</option>
+                            <option value="">-- Choose Group --</option>
+                            {customerGroups.map(g => (
+                              <option key={g.id} value={g.id}>{g.name}</option>
                             ))}
                           </select>
                         </div>
@@ -507,35 +511,34 @@ export default function ItemsPage() {
                               step="0.01" 
                               className="w-full pl-6 pr-3 py-2 bg-white border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/10 rounded-lg transition text-sm font-mono outline-none" 
                               placeholder="0.00"
-                              value={newCustPrice.price}
-                              onChange={e => setNewCustPrice({ ...newCustPrice, price: e.target.value })}
+                              value={newGroupPrice.price}
+                              onChange={e => setNewGroupPrice({ ...newGroupPrice, price: e.target.value })}
                             />
                           </div>
                         </div>
                         <div className="flex items-end">
                           <button 
                             type="button"
-                            onClick={handleAddCustomerPrice}
+                            onClick={handleAddGroupPrice}
                             className="w-full px-4 py-2 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition text-xs uppercase tracking-widest"
                           >
-                            Add Special Price
+                            Add Group Price
                           </button>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        {itemCustomerPrices.length > 0 ? (
-                          itemCustomerPrices.map(cp => (
-                            <div key={cp.customer_id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        {itemGroupPrices.length > 0 ? (
+                          itemGroupPrices.map(gp => (
+                            <div key={gp.group_id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
                               <div className="flex flex-col">
-                                <span className="text-xs font-bold text-slate-900">{cp.customer_name}</span>
-                                <span className="text-[10px] text-slate-400">{cp.customer_email}</span>
+                                <span className="text-xs font-bold text-slate-900">{gp.group_name}</span>
                               </div>
                               <div className="flex items-center gap-4">
-                                <span className="text-sm font-black text-emerald-600">$ {parseFloat(cp.price).toFixed(2)}</span>
+                                <span className="text-sm font-black text-emerald-600">$ {parseFloat(gp.price).toFixed(2)}</span>
                                 <button 
                                   type="button"
-                                  onClick={() => handleRemoveCustomerPrice(cp.customer_id)}
+                                  onClick={() => handleRemoveGroupPrice(gp.group_id)}
                                   className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -545,7 +548,7 @@ export default function ItemsPage() {
                           ))
                         ) : (
                           <div className="text-center py-8 text-slate-400">
-                            <p className="text-xs font-medium italic">No customer-specific pricing defined for this item.</p>
+                            <p className="text-xs font-medium italic">No group-specific pricing defined for this item.</p>
                           </div>
                         )}
                       </div>

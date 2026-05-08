@@ -86,6 +86,13 @@ export default function InventoryPage() {
 
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedSalesperson) return alert('Please select a recipient staff member.');
+    if (!adjustAmount || adjustAmount <= 0) return alert('Please enter a valid amount.');
+    
+    const isReturnToWarehouse = selectedSalesperson === 'WAREHOUSE';
+    const sourceStaffId = selectedSubInventory.startsWith('SP_') ? selectedSubInventory.split('_')[1] : null;
+    const isStaffToStaff = sourceStaffId && !isReturnToWarehouse;
+
     try {
       const res = await fetch(`${API_URL}/inventory/update`, {
         method: 'POST',
@@ -93,10 +100,15 @@ export default function InventoryPage() {
         body: JSON.stringify({
           item_id: selectedItem.id,
           quantity_changed: -adjustAmount,
-          type: 'ASSIGNMENT',
-          notes: `Assigned to: ${users.find(u => u.id == selectedSalesperson)?.name || 'Direct Assign'}. Notes: ${adjustNotes}`,
+          type: isReturnToWarehouse ? 'RETURN' : (isStaffToStaff ? 'TRANSFER' : 'ASSIGNMENT'),
+          notes: isReturnToWarehouse
+            ? `Returned to warehouse from: ${users.find(u => u.id == sourceStaffId)?.name || 'Staff'}. Notes: ${adjustNotes}`
+            : isStaffToStaff
+              ? `Transferred from ${users.find(u => u.id == sourceStaffId)?.name} to ${users.find(u => u.id == selectedSalesperson)?.name}. Notes: ${adjustNotes}`
+              : `Assigned to: ${users.find(u => u.id == selectedSalesperson)?.name || 'Direct Assign'}. Notes: ${adjustNotes}`,
           unit_cost: 0,
-          salesperson_id: selectedSalesperson
+          salesperson_id: isReturnToWarehouse ? sourceStaffId : selectedSalesperson,
+          source_salesperson_id: isStaffToStaff ? sourceStaffId : null
         })
       });
       const data = await res.json();
@@ -201,9 +213,9 @@ export default function InventoryPage() {
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100">
                                 <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Item Description</th>
-                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Warehouse</th>
-                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Staff Force</th>
-                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Total</th>
+                                {!selectedSubInventory.startsWith('SP_') && <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Warehouse</th>}
+                                {selectedSubInventory !== 'WAREHOUSE' && <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Staff Force</th>}
+                                {selectedSubInventory === 'ALL_STOCK' && <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Total</th>}
                                 <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                                 <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
                             </tr>
@@ -234,9 +246,9 @@ export default function InventoryPage() {
                                                 <span className="text-[10px] text-slate-400 font-mono font-bold tracking-tight uppercase">{item.item_number}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-center font-bold text-slate-600">{warehouseStock}</td>
-                                        <td className="px-6 py-4 text-center font-bold text-amber-600">+{staffStock}</td>
-                                        <td className="px-6 py-4 text-center text-lg font-black text-slate-900">{rowTotal}</td>
+                                        {!selectedSubInventory.startsWith('SP_') && <td className="px-6 py-4 text-center font-bold text-slate-600">{warehouseStock}</td>}
+                                        {selectedSubInventory !== 'WAREHOUSE' && <td className="px-6 py-4 text-center font-bold text-amber-600">+{staffStock}</td>}
+                                        {selectedSubInventory === 'ALL_STOCK' && <td className="px-6 py-4 text-center text-lg font-black text-slate-900">{rowTotal}</td>}
                                         <td className="px-6 py-4">
                                              <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-widest ${
                                                 rowTotal <= (item.reorder_level || 0) ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
@@ -246,8 +258,8 @@ export default function InventoryPage() {
                                         </td>
                                         <td className="px-6 py-3 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button onClick={() => { setSelectedItem(item); setShowAssignModal(true); }} className="text-emerald-600 font-black text-[10px] uppercase tracking-widest border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-50 transition-colors">Move</button>
-                                                <button onClick={() => { setSelectedItem(item); setShowAdjustModal(true); }} className="text-indigo-600 font-black text-[10px] uppercase tracking-widest border border-indigo-200 px-3 py-1 rounded hover:bg-indigo-50 transition-colors">Adjust</button>
+                                                {selectedSubInventory !== 'ALL_STOCK' && <button onClick={() => { setSelectedItem(item); setAdjustAmount(0); setSelectedSalesperson(''); setAdjustNotes(''); setShowAssignModal(true); }} className="text-emerald-600 font-black text-[10px] uppercase tracking-widest border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-50 transition-colors">Move</button>}
+                                                {!selectedSubInventory.startsWith('SP_') && <button onClick={() => { setSelectedItem(item); setAdjustAmount(0); setAdjustNotes(''); setAdjustType('RESTOCK'); setAdjustUnitCost(0); setShowAdjustModal(true); }} className="text-indigo-600 font-black text-[10px] uppercase tracking-widest border border-indigo-200 px-3 py-1 rounded hover:bg-indigo-50 transition-colors">Adjust</button>}
                                             </div>
                                         </td>
                                     </tr>
@@ -280,6 +292,7 @@ export default function InventoryPage() {
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${
                                         log.type === 'ASSIGNMENT' ? 'bg-amber-50 text-amber-700 border-amber-100' : 
+                                        log.type === 'TRANSFER' ? 'bg-purple-50 text-purple-700 border-purple-100' : 
                                         log.type === 'RESTOCK' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
                                         'bg-indigo-50 text-indigo-700 border-indigo-100'
                                     }`}>
@@ -299,7 +312,18 @@ export default function InventoryPage() {
       )}
 
       {/* Modals... Adjusted for consistency */}
-      {showAssignModal && selectedItem && (
+      {showAssignModal && selectedItem && (() => {
+        const assignMax = (() => {
+          if (selectedSubInventory.startsWith('SP_')) {
+            const spId = selectedSubInventory.split('_')[1];
+            const subs = Array.isArray(selectedItem.sub_inventories) ? selectedItem.sub_inventories : [];
+            const spData = subs.find((s: any) => s.user_id?.toString() === spId);
+            return Number(spData?.quantity || 0);
+          }
+          return Number(selectedItem.warehouse_quantity || 0);
+        })();
+
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl relative z-10 p-8 space-y-6 animate-in zoom-in-95 duration-200">
@@ -312,14 +336,15 @@ export default function InventoryPage() {
               
               <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Recipient Staff</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{selectedSubInventory.startsWith('SP_') ? 'Recipient Staff / Warehouse' : 'Recipient Staff'}</label>
                     <select
                         required
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-bold outline-none cursor-pointer appearance-none"
                         value={selectedSalesperson}
                         onChange={e => setSelectedSalesperson(e.target.value)}
                     >
-                        <option value="">Choose staff...</option>
+                        <option value="">Choose destination...</option>
+                        {selectedSubInventory.startsWith('SP_') && <option value="WAREHOUSE">🏢 Main Warehouse</option>}
                         {users.filter(u => u.role === 'staff').map(u => (
                             <option key={u.id} value={u.id}>{u.name}</option>
                         ))}
@@ -327,16 +352,19 @@ export default function InventoryPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Amount to Transfer</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Amount to Transfer</label>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Available: <span className="text-indigo-600">{assignMax}</span></span>
+                    </div>
                     <input
                         type="number"
                         required
                         min="1"
-                        max={selectedItem.warehouse_quantity || 0}
+                        max={assignMax}
                         className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-2xl font-black text-indigo-600 outline-none focus:ring-1 focus:ring-indigo-600/10"
                         placeholder="0"
                         value={adjustAmount || ''}
-                        onChange={e => setAdjustAmount(parseInt(e.target.value) || 0)}
+                        onChange={e => { const val = parseInt(e.target.value) || 0; setAdjustAmount(val > assignMax ? assignMax : val); }}
                     />
                   </div>
               </div>
@@ -353,7 +381,8 @@ export default function InventoryPage() {
               </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {showAdjustModal && selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

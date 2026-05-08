@@ -1,36 +1,52 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { Plus, Users, Search, Edit, Trash2, X, MapPin, Phone, Building2 } from 'lucide-react';
+import { Plus, Users, Search, Edit, Trash2, X, MapPin, Phone, Building2, UserPlus, Layers } from 'lucide-react';
 import { API_URL } from '@/lib/config';
 import ConfirmModal from '@/components/ConfirmModal';
 import MapPicker from '@/components/MapPicker';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
+  const [customerGroups, setCustomerGroups] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
   const [formData, setFormData] = useState({
     address: '', phone: '', account_id: '', permit_numbers: '',
     registered_company_name: '', dba: '', email: '', sales_tax_id: '',
     has_cigarette_permit: false, tobacco_permit_number: '', tobacco_expire_date: '', payment_type: 'COD',
-    latitude: undefined as number | undefined, longitude: undefined as number | undefined
+    latitude: undefined as number | undefined, longitude: undefined as number | undefined,
+    group_id: '' as string | number
+  });
+  const [groupFormData, setGroupFormData] = useState({
+    name: '', description: ''
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [groupSubmitting, setGroupSubmitting] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  const [isGroupEdit, setIsGroupEdit] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [editGroupId, setEditGroupId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteGroupId, setDeleteGroupId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showGroupDeleteConfirm, setShowGroupDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isGroupDeleting, setIsGroupDeleting] = useState(false);
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${API_URL}/customers`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCustomers(data.data);
-      }
+      const token = localStorage.getItem('token');
+      const [custRes, groupRes] = await Promise.all([
+        fetch(`${API_URL}/customers`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/customer-groups`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+      
+      const custData = await custRes.json();
+      const groupData = await groupRes.json();
+
+      if (custData.success) setCustomers(custData.data);
+      if (groupData.success) setCustomerGroups(groupData.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -58,7 +74,8 @@ export default function CustomersPage() {
         body: JSON.stringify({
           ...formData,
           latitude: formData.latitude ? parseFloat(formData.latitude.toString()) : null,
-          longitude: formData.longitude ? parseFloat(formData.longitude.toString()) : null
+          longitude: formData.longitude ? parseFloat(formData.longitude.toString()) : null,
+          group_id: formData.group_id || null
         })
       });
       const data = await res.json();
@@ -69,7 +86,7 @@ export default function CustomersPage() {
           address: '', phone: '', account_id: '', permit_numbers: '',
           registered_company_name: '', dba: '', email: '', sales_tax_id: '',
           has_cigarette_permit: false, tobacco_permit_number: '', tobacco_expire_date: '', payment_type: 'COD',
-          latitude: undefined, longitude: undefined
+          latitude: undefined, longitude: undefined, group_id: ''
         });
         setIsEdit(false);
         setEditId(null);
@@ -80,6 +97,38 @@ export default function CustomersPage() {
       alert(isEdit ? "Error updating customer" : "Error adding customer");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGroupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGroupSubmitting(true);
+    try {
+      const url = isGroupEdit ? `${API_URL}/customer-groups/${editGroupId}` : `${API_URL}/customer-groups`;
+      const method = isGroupEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(groupFormData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchCustomers();
+        setShowGroupModal(false);
+        setGroupFormData({ name: '', description: '' });
+        setIsGroupEdit(false);
+        setEditGroupId(null);
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      alert(isGroupEdit ? "Error updating group" : "Error adding group");
+    } finally {
+      setGroupSubmitting(false);
     }
   };
 
@@ -98,16 +147,32 @@ export default function CustomersPage() {
       tobacco_expire_date: customer.tobacco_expire_date ? new Date(customer.tobacco_expire_date).toISOString().split('T')[0] : '',
       payment_type: customer.payment_type || 'COD',
       latitude: customer.latitude ? parseFloat(customer.latitude) : undefined,
-      longitude: customer.longitude ? parseFloat(customer.longitude) : undefined
+      longitude: customer.longitude ? parseFloat(customer.longitude) : undefined,
+      group_id: customer.group_id || ''
     });
     setEditId(customer.id);
     setIsEdit(true);
     setShowModal(true);
   };
 
+  const handleGroupEdit = (group: any) => {
+    setGroupFormData({
+      name: group.name || '',
+      description: group.description || ''
+    });
+    setEditGroupId(group.id);
+    setIsGroupEdit(true);
+    setShowGroupModal(true);
+  };
+
   const handleDelete = (id: number) => {
     setDeleteId(id);
     setShowDeleteConfirm(true);
+  };
+
+  const handleGroupDelete = (id: number) => {
+    setDeleteGroupId(id);
+    setShowGroupDeleteConfirm(true);
   };
 
   const confirmDelete = async () => {
@@ -132,6 +197,31 @@ export default function CustomersPage() {
       alert("Error deleting customer");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const confirmGroupDelete = async () => {
+    if (!deleteGroupId) return;
+    setIsGroupDeleting(true);
+    try {
+      const res = await fetch(`${API_URL}/customer-groups/${deleteGroupId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchCustomers();
+        setShowGroupDeleteConfirm(false);
+        setDeleteGroupId(null);
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      alert("Error deleting group");
+    } finally {
+      setIsGroupDeleting(false);
     }
   };
 
@@ -166,23 +256,37 @@ export default function CustomersPage() {
           <h1 className="text-[30px] leading-none font-bold text-slate-900 tracking-tight">Active Customers</h1>
           <p className="text-slate-500 mt-1 text-sm font-medium">Manage customer accounts & data.</p>
         </div>
-        <button
-          onClick={() => {
-            setIsEdit(false);
-            setEditId(null);
-            setFormData({
-              address: '', phone: '', account_id: '', permit_numbers: '',
-              registered_company_name: '', dba: '', email: '', sales_tax_id: '',
-              has_cigarette_permit: false, tobacco_permit_number: '', tobacco_expire_date: '', payment_type: 'COD',
-              latitude: undefined, longitude: undefined
-            });
-            setShowModal(true);
-          }}
-          className="bg-emerald-600 shadow-sm shadow-emerald-200 text-white flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm hover:bg-emerald-700 transition-all font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          Add New Customer
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              setIsGroupEdit(false);
+              setEditGroupId(null);
+              setGroupFormData({ name: '', description: '' });
+              setShowGroupModal(true);
+            }}
+            className="bg-white border border-gray-200 text-slate-700 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition-all font-medium shadow-sm"
+          >
+            <Layers className="w-4 h-4 text-emerald-600" />
+            Customer Groups
+          </button>
+          <button
+            onClick={() => {
+              setIsEdit(false);
+              setEditId(null);
+              setFormData({
+                address: '', phone: '', account_id: '', permit_numbers: '',
+                registered_company_name: '', dba: '', email: '', sales_tax_id: '',
+                has_cigarette_permit: false, tobacco_permit_number: '', tobacco_expire_date: '', payment_type: 'COD',
+                latitude: undefined, longitude: undefined, group_id: ''
+              });
+              setShowModal(true);
+            }}
+            className="bg-emerald-600 shadow-sm shadow-emerald-200 text-white flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm hover:bg-emerald-700 transition-all font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            Add New Customer
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-100 overflow-hidden min-h-[60vh] flex flex-col">
@@ -203,6 +307,7 @@ export default function CustomersPage() {
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="px-6 py-4 text-[11px] font-bold text-[#164174] uppercase tracking-widest text-left">Account #</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-[#164174] uppercase tracking-widest text-left">DBA / Company</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-[#164174] uppercase tracking-widest text-left">Group</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-[#164174] uppercase tracking-widest text-left">Tax ID</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-[#164174] uppercase tracking-widest text-right">Actions</th>
               </tr>
@@ -218,6 +323,11 @@ export default function CustomersPage() {
                       <span className="text-sm font-bold text-gray-900">{c.dba || '—'}</span>
                       <span className="text-xs text-gray-500">{c.registered_company_name || '—'}</span>
                     </div>
+                  </td>
+                  <td className="px-6 py-3 whitespace-nowrap">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${c.group_id ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                      {customerGroups.find(g => g.id === c.group_id)?.name || 'Unassigned'}
+                    </span>
                   </td>
                   <td className="px-6 py-3 whitespace-nowrap">
                     <span className="text-sm text-gray-600 font-mono">{c.sales_tax_id || '—'}</span>
@@ -403,6 +513,26 @@ export default function CustomersPage() {
                     </div>
                   </div>
                 </div>
+
+                <div className="md:col-span-2 space-y-4 pt-6 border-t border-gray-100">
+                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Customer Classification</h3>
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-gray-100">
+                    <div className="max-w-md">
+                      <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Assign Group</label>
+                      <select 
+                        className="w-full px-4 py-2 bg-white border border-gray-200 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/10 rounded-lg transition text-sm font-black outline-none appearance-none cursor-pointer"
+                        value={formData.group_id} 
+                        onChange={e => setFormData({ ...formData, group_id: e.target.value })}
+                      >
+                        <option value="">-- No Group (Unassigned) --</option>
+                        {customerGroups.map(g => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-400 mt-1 font-medium italic">Groups determine special pricing rules for items.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="pt-8 border-t border-gray-100 flex justify-end gap-3 bg-white mt-auto">
                 <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 font-bold text-slate-500 rounded-lg hover:bg-gray-50 transition uppercase text-[10px] tracking-widest">Cancel</button>
@@ -423,6 +553,112 @@ export default function CustomersPage() {
         title="Delete Customer"
         message="Are you sure you want to delete this customer? This will immediately remove them from your active records."
       />
+
+      <ConfirmModal
+        isOpen={showGroupDeleteConfirm}
+        onClose={() => setShowGroupDeleteConfirm(false)}
+        onConfirm={confirmGroupDelete}
+        isLoading={isGroupDeleting}
+        title="Delete Customer Group"
+        message="Are you sure you want to delete this group? Customers in this group will become unassigned and group-specific pricing will be removed."
+      />
+
+      {/* Group Management Modal */}
+      {showGroupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowGroupModal(false)} />
+          <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
+                  <Layers className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Customer Group Management</h2>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Organize retailers for bulk pricing rules</p>
+                </div>
+              </div>
+              <button onClick={() => setShowGroupModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                <X className="w-6 h-6 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* List Groups */}
+              <div className="space-y-6">
+                <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Active Groups</h3>
+                <div className="space-y-3">
+                  {customerGroups.map(group => (
+                    <div key={group.id} className="p-4 bg-slate-50 border border-gray-100 rounded-2xl flex items-center justify-between hover:bg-white hover:shadow-sm transition-all group">
+                      <div>
+                        <h4 className="text-sm font-black text-slate-800">{group.name}</h4>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{group.customer_count || 0} Members Attached</p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleGroupEdit(group)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => handleGroupDelete(group.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))}
+                  {customerGroups.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-3xl">
+                      <Layers className="w-10 h-10 text-slate-100 mx-auto mb-3" />
+                      <p className="text-xs font-black text-slate-300 uppercase tracking-widest">No Groups Found</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Form to Create/Edit Group */}
+              <div className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-sm flex flex-col h-fit">
+                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] mb-6">
+                  {isGroupEdit ? 'Edit Group parameters' : 'Define New Group'}
+                </h3>
+                <form onSubmit={handleGroupSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Group Label</label>
+                    <input 
+                      type="text" 
+                      required 
+                      className="w-full px-4 py-3 bg-slate-50 border border-gray-100 focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/10 rounded-xl transition text-sm font-bold outline-none" 
+                      placeholder="e.g. Convenience Stores"
+                      value={groupFormData.name}
+                      onChange={e => setGroupFormData({ ...groupFormData, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-widest">Strategic Description</label>
+                    <textarea 
+                      className="w-full px-4 py-3 bg-slate-50 border border-gray-100 focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/10 rounded-xl transition text-sm font-medium outline-none resize-none h-24" 
+                      placeholder="Define the scope of this group..."
+                      value={groupFormData.description}
+                      onChange={e => setGroupFormData({ ...groupFormData, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="pt-4 flex gap-3">
+                    {isGroupEdit && (
+                      <button 
+                        type="button" 
+                        onClick={() => { setIsGroupEdit(false); setEditGroupId(null); setGroupFormData({ name: '', description: '' }); }}
+                        className="flex-1 py-3 font-bold text-slate-400 uppercase text-[10px] tracking-widest hover:bg-slate-50 rounded-xl transition"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button 
+                      type="submit" 
+                      disabled={groupSubmitting}
+                      className="flex-2 py-3 bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-100 uppercase text-[10px] tracking-widest hover:bg-emerald-700 transition disabled:opacity-50"
+                    >
+                      {groupSubmitting ? 'Syncing...' : isGroupEdit ? 'Update Group' : 'Commit Group'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
