@@ -29,6 +29,19 @@ export default function ItemsPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
 
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setIsEdit(false);
+    setEditId(null);
+    setItemGroupPrices([]);
+    setNewGroupPrice({ group_id: '', price: '' });
+    setFormData({
+      description_name: '', price: '', description: '',
+      item_number: '', upc: '', cost: '', quantity_size: '', vendor_cost: '',
+      category_id: ''
+    });
+  };
+
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -138,14 +151,7 @@ export default function ItemsPage() {
       const data = await res.json();
       if (data.success) {
         fetchData();
-        setShowModal(false);
-        setFormData({
-          description_name: '', price: '', description: '',
-          item_number: '', upc: '', cost: '', quantity_size: '', vendor_cost: '',
-          category_id: ''
-        });
-        setIsEdit(false);
-        setEditId(null);
+        handleCloseModal();
       } else {
         alert(data.message);
       }
@@ -169,6 +175,8 @@ export default function ItemsPage() {
       category_id: item.category_id || ''
     });
     setEditId(item.id);
+    setItemGroupPrices([]);
+    setNewGroupPrice({ group_id: '', price: '' });
     setIsEdit(true);
     setShowModal(true);
     fetchItemGroupPrices(item.id);
@@ -237,14 +245,7 @@ export default function ItemsPage() {
         </div>
         <button
           onClick={() => {
-            setIsEdit(false);
-            setEditId(null);
-            setFormData({
-              description_name: '', price: '', description: '',
-              item_number: '', upc: '', cost: '', quantity_size: '', vendor_cost: '',
-              category_id: ''
-            });
-            setItemGroupPrices([]);
+            handleCloseModal();
             setShowModal(true);
           }}
           className="bg-orange-500 shadow-sm shadow-orange-200 text-white flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm hover:bg-orange-600 transition-all font-medium"
@@ -388,7 +389,7 @@ export default function ItemsPage() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setShowModal(false)} />
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={handleCloseModal} />
           <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[95vh] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white">
               <div className="flex items-center gap-3">
@@ -399,7 +400,7 @@ export default function ItemsPage() {
                   {isEdit ? 'Update Item Matrix' : 'Manage Product'}
                 </h2>
               </div>
-              <button className="p-2 bg-gray-50 hover:bg-gray-100 rounded-full transition" onClick={() => setShowModal(false)}>
+              <button className="p-2 bg-gray-50 hover:bg-gray-100 rounded-full transition" onClick={handleCloseModal}>
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -557,7 +558,7 @@ export default function ItemsPage() {
                 )}
 
                 <div className="pt-8 border-t border-gray-100 flex justify-end gap-3 bg-white mt-auto">
-                  <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 font-bold text-slate-500 rounded-lg hover:bg-gray-50 transition uppercase text-[10px] tracking-widest">Cancel</button>
+                  <button type="button" onClick={handleCloseModal} className="px-6 py-2.5 font-bold text-slate-500 rounded-lg hover:bg-gray-50 transition uppercase text-[10px] tracking-widest">Cancel</button>
                   <button type="submit" disabled={submitting} className="px-8 py-2.5 bg-orange-600 text-white font-black rounded-lg hover:bg-orange-700 shadow-lg shadow-orange-100 transition disabled:opacity-50 uppercase text-[10px] tracking-widest">
                     {submitting ? (isEdit ? 'Updating...' : 'Submitting...') : (isEdit ? 'Update Record' : 'Submit')}
                   </button>
