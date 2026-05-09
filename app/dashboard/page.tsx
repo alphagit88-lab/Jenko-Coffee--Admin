@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Users, Store, Package, Activity, ArrowUpRight, TrendingUp, ShoppingCart, LayoutDashboard } from 'lucide-react';
+import { Users, Store, Package, Activity, ArrowUpRight, TrendingUp, ShoppingCart, LayoutDashboard, Download } from 'lucide-react';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>({ 
@@ -94,9 +94,19 @@ export default function DashboardPage() {
           <h1 className="text-[30px] leading-none font-bold text-slate-900 tracking-tight">System Overview</h1>
           <p className="text-slate-500 mt-1 text-sm font-medium">Welcome back! Here's what's happening today.</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
-          <Activity className="w-4 h-4 text-emerald-500" />
-          <span>System Healthy</span>
+        <div className="flex items-center gap-4">
+          <a 
+            href="/JenCoffee_latest_version.apk" 
+            download
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-100 transition-all active:scale-95"
+          >
+            <Download className="w-4 h-4" />
+            <span>DOWNLOAD LATEST ANDROID APP</span>
+          </a>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
+            <Activity className="w-4 h-4 text-emerald-500" />
+            <span>System Healthy</span>
+          </div>
         </div>
       </div>
 

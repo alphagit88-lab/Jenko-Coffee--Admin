@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { ShoppingCart, Package, TrendingUp, Activity, ArrowUpRight, LayoutDashboard, Clock } from 'lucide-react';
+import { ShoppingCart, Package, TrendingUp, Activity, ArrowUpRight, LayoutDashboard, Clock, Download } from 'lucide-react';
 import { API_URL } from '@/lib/config';
 
 export default function StaffDashboard() {
@@ -88,9 +88,19 @@ export default function StaffDashboard() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Sales Representative Dashboard</h1>
           <p className="text-slate-500 mt-1 font-bold uppercase tracking-wider text-xs">Real-time tracking of your regional operations.</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-xs font-black text-emerald-600 shadow-sm uppercase tracking-widest">
-          <Activity className="w-4 h-4" />
-          <span>Active Session</span>
+        <div className="flex items-center gap-4">
+          <a 
+            href="/JenCoffee_latest_version.apk" 
+            download
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-100 transition-all active:scale-95"
+          >
+            <Download className="w-4 h-4" />
+            <span>DOWNLOAD LATEST ANDROID APP</span>
+          </a>
+          <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-xs font-black text-emerald-600 shadow-sm uppercase tracking-widest">
+            <Activity className="w-4 h-4" />
+            <span>Active Session</span>
+          </div>
         </div>
       </div>
 
